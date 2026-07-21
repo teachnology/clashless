@@ -14,7 +14,7 @@ GROUPABLE_ROLE_COLUMNS = ["s1_name", "s2_name", "moderator"]
 # optimality on a large input could take arbitrarily long. All hard constraints
 # still apply regardless of the time limit - only how well-grouped an otherwise
 # valid schedule is may fall short of proven-optimal.
-MAX_SOLVE_SECONDS = 30.0
+DEFAULT_MAX_SOLVE_SECONDS = 30.0
 
 
 class Schedule:
@@ -32,13 +32,39 @@ class Schedule:
     the number of distinct days they're needed on, then - as a tiebreaker - how
     spread out their sessions are on the days they are needed, so a few
     presentations land back-to-back rather than scattered with gaps.
+
+    optimize_grouping=False skips building that objective entirely (not just
+    ignoring it), reverting to the old "stop at the first feasible schedule"
+    behaviour - a genuine speed win on large inputs, not just a smaller model.
+    active_day_weight/spread_weight let you re-balance the two terms (default
+    active_day_weight is n_days * n_sessions, chosen so it always dominates any
+    possible change in total spread; see _add_grouping_objective).
+    max_solve_seconds is the best-effort time budget passed straight to CP-SAT.
     """
 
-    def __init__(self, presentations, unavailability, session_times, n_days):
+    def __init__(
+        self,
+        presentations,
+        unavailability,
+        session_times,
+        n_days,
+        optimize_grouping=True,
+        active_day_weight=None,
+        spread_weight=1,
+        max_solve_seconds=DEFAULT_MAX_SOLVE_SECONDS,
+    ):
         self.presentations = presentations
         self.unavailability = unavailability
         self.session_times = session_times
         self.n_days = n_days
+        self.optimize_grouping = optimize_grouping
+        self.active_day_weight = (
+            active_day_weight
+            if active_day_weight is not None
+            else n_days * session_times.n_sessions
+        )
+        self.spread_weight = spread_weight
+        self.max_solve_seconds = max_solve_seconds
 
     def solve(self):
         data = self.presentations.data
@@ -81,10 +107,11 @@ class Schedule:
             if len(sharing_ids) > 1:
                 model.add_all_different(slot_vars[i] for i in sharing_ids)
 
-        self._add_grouping_objective(model, slot_vars, data, n_sessions)
+        if self.optimize_grouping:
+            self._add_grouping_objective(model, slot_vars, data, n_sessions)
 
         solver = cp_model.CpSolver()
-        solver.parameters.max_time_in_seconds = MAX_SOLVE_SECONDS
+        solver.parameters.max_time_in_seconds = self.max_solve_seconds
         status = solver.solve(model)
 
         if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
@@ -152,9 +179,12 @@ class Schedule:
                 model.add(max_session == 0).only_enforce_if(active.Not())
                 spread_terms.append(max_session - min_session)
 
-        # Weighted so that reducing the total active-day count by even one
-        # always dominates any possible change in total spread (each spread
-        # term is bounded by n_sessions - 1) - i.e. active days first, spread
-        # as a tiebreaker, via a single weighted objective.
-        active_day_weight = self.n_days * n_sessions
-        model.minimize(active_day_weight * sum(active_terms) + sum(spread_terms))
+        # Weighted so that, by default, reducing the total active-day count by
+        # even one always dominates any possible change in total spread (each
+        # spread term is bounded by n_sessions - 1) - i.e. active days first,
+        # spread as a tiebreaker, via a single weighted objective. Callers can
+        # override active_day_weight/spread_weight to change that balance.
+        model.minimize(
+            self.active_day_weight * sum(active_terms)
+            + self.spread_weight * sum(spread_terms)
+        )

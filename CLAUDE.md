@@ -33,16 +33,26 @@ On top of that hard-constraint model, `solve()` also optimizes for schedule *qua
 objective, summed over every person appearing as `s1_name`/`s2_name`/`moderator` (never `student`
 — they only ever have their own one presentation, so there's nothing to group), that primarily
 minimizes each person's number of distinct active days (maximizing whole days off), and secondarily
-(much lower weight — `active_day_weight = n_days * n_sessions`, always dominating any possible
-change in the secondary term) minimizes each active day's session "spread" (last − first session
-used), rewarding back-to-back sessions over scattered ones. This turns `solve()` into a genuine
-optimization rather than "stop at the first feasible solution," so it's best-effort within a time
-budget (`MAX_SOLVE_SECONDS = 30.0` in `schedule.py`) — CP-SAT's `FEASIBLE` status (valid but not
-proven optimal) is accepted, same as `OPTIMAL`; only grouping *quality* is time-boxed, hard
-constraints are never relaxed. At real scale (the ~290-presentation `large_synthetic` fixture),
-30s only gets partway to optimal grouping — verified empirically that giving it much longer (~180s)
-continues to visibly improve grouping — which is why that fixture's test stays a validity-only
-smoke test rather than asserting a specific grouping quality (see below).
+(much lower weight, by default — always dominating any possible change in the secondary term)
+minimizes each active day's session "spread" (last − first session used), rewarding back-to-back
+sessions over scattered ones. This turns `solve()` into a genuine optimization rather than "stop at
+the first feasible solution," so it's best-effort within a time budget — CP-SAT's `FEASIBLE` status
+(valid but not proven optimal) is accepted, same as `OPTIMAL`; only grouping *quality* is
+time-boxed, hard constraints are never relaxed. At real scale (the ~290-presentation
+`large_synthetic` fixture), 30s only gets partway to optimal grouping — verified empirically that
+giving it much longer (~180s) continues to visibly improve grouping — which is why that fixture's
+test stays a validity-only smoke test rather than asserting a specific grouping quality (see
+below). More surprisingly, once the objective's auxiliary variables are built, even *reaching
+feasibility* on that fixture takes ~15-20s (vs. well under a second with the objective off) —
+don't assume a short `max_solve_seconds` is safe on a large input just because feasibility alone
+used to be fast; test with a right-sized fixture instead (see `several_competing_moderators`
+below).
+
+`Schedule.__init__` exposes four parameters controlling this, all optional with defaults matching
+the behaviour above: `optimize_grouping=True` (set `False` to skip building the objective
+entirely — not just ignore it — reverting to the old fast feasibility-only solve, a genuine speed
+win rather than a smaller model), `active_day_weight=None` (default `n_days * n_sessions`),
+`spread_weight=1`, and `max_solve_seconds=30.0` (CP-SAT's best-effort time budget).
 
 `plot_schedule(schedule, presentations, session_times)` (`src/clashless/plotting.py`) renders a
 solved schedule as an interactive Plotly timetable: moderators on the x-axis, chronological
@@ -116,6 +126,13 @@ presentations that a non-optimizing solver can end up interleaving them across m
 than necessary. A version of these fixtures with only one repeated person (no competing moderator)
 passed even *before* the objective was implemented, purely because CP-SAT's default search happens
 to pack low slot indices first — worth remembering if you add more grouping-objective fixtures.
+`several_competing_moderators` (32 presentations, 4 moderators pairwise sharing a supervisor) is the
+right-sized fixture for testing `optimize_grouping`/`max_solve_seconds`: small enough to reach
+feasibility instantly, but with the objective on and its default 30s budget, genuinely hard enough
+to *optimize* that it uses the whole budget — giving a real, reliable contrast for both the on/off
+toggle and a reduced time budget, unlike `large_synthetic` (too slow to reach feasibility quickly
+once the objective's auxiliary variables are attached) or the tiny fixtures above (solve instantly
+either way, so a time limit has nothing to visibly bound).
 
 Tests are fixture-driven from `tests/data/<scenario_name>/` — one directory per scenario, each
 containing only the CSVs that scenario needs (pure `Presentations` validation tests need only

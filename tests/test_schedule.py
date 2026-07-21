@@ -1,7 +1,13 @@
+import time
+
 import pytest
 from conftest import assert_valid_schedule, load_scenario
 
 from clashless import Schedule, SchedulingError
+
+# Generous enough to never flake on a slow CI runner, but far enough below the
+# 30s default that it clearly proves the toggle/time-budget actually took effect.
+FAST_SOLVE_CEILING_SECONDS = 10
 
 
 def _solve(scenario_name: str, n_days: int):
@@ -202,3 +208,89 @@ def test_large_synthetic_dataset_produces_a_valid_schedule():
         scenario.session_times,
         n_days=10,
     )
+
+
+def test_optimize_grouping_false_skips_the_objective_and_solves_fast():
+    # several_competing_moderators is deliberately hard to *optimally* group (4
+    # moderators, each pairwise sharing a supervisor with the next) - with the
+    # objective on, solve() uses most of the default 30s budget just improving
+    # the grouping. With it off, solve() goes back to stopping at the first
+    # feasible schedule, finishing in a small fraction of a second instead.
+    scenario = load_scenario("several_competing_moderators")
+
+    start = time.perf_counter()
+    schedule = Schedule(
+        scenario.presentations,
+        scenario.unavailability,
+        scenario.session_times,
+        n_days=6,
+        optimize_grouping=False,
+    ).solve()
+    elapsed = time.perf_counter() - start
+
+    assert_valid_schedule(
+        schedule,
+        scenario.presentations,
+        scenario.unavailability,
+        scenario.session_times,
+        n_days=6,
+    )
+    assert elapsed < FAST_SOLVE_CEILING_SECONDS
+
+
+def test_max_solve_seconds_bounds_the_search_time():
+    # Same fixture as above: with the default 30s budget, solve() (grouping on)
+    # runs the full budget trying to improve the grouping. A tiny explicit budget
+    # should still return a valid (if not well-grouped) schedule promptly,
+    # proving max_solve_seconds is actually threaded through to CP-SAT rather
+    # than the objective ignoring it.
+    scenario = load_scenario("several_competing_moderators")
+
+    start = time.perf_counter()
+    schedule = Schedule(
+        scenario.presentations,
+        scenario.unavailability,
+        scenario.session_times,
+        n_days=6,
+        max_solve_seconds=1.0,
+    ).solve()
+    elapsed = time.perf_counter() - start
+
+    assert_valid_schedule(
+        schedule,
+        scenario.presentations,
+        scenario.unavailability,
+        scenario.session_times,
+        n_days=6,
+    )
+    assert elapsed < FAST_SOLVE_CEILING_SECONDS
+
+
+def test_spread_weight_can_be_prioritized_over_active_days():
+    # Same fixture/scenario as test_supervisor_is_grouped_into_fewest_possible_days,
+    # where default weights land Nora on 2 active days. Inverting the weights so
+    # spread dominates instead makes the solver prefer spreading her 4
+    # presentations one-per-day across all 4 available days - spread 0 on every
+    # active day, unbeatable - even though that means more active days, proving
+    # the weights are genuinely wired into the objective, not just accepted and
+    # ignored.
+    scenario = load_scenario("grouped_into_fewest_days")
+
+    schedule = Schedule(
+        scenario.presentations,
+        scenario.unavailability,
+        scenario.session_times,
+        n_days=4,
+        active_day_weight=1,
+        spread_weight=1000,
+    ).solve()
+
+    assert_valid_schedule(
+        schedule,
+        scenario.presentations,
+        scenario.unavailability,
+        scenario.session_times,
+        n_days=4,
+    )
+    nora_ids = ["p1", "p2", "p3", "p4"]
+    assert schedule.loc[nora_ids, "day"].nunique() == 4
