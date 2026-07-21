@@ -53,8 +53,18 @@ backend).
 - Run a single test: `uv run pytest tests/test_foo.py::test_name`
 - Run tests in parallel (pytest-xdist is a dev dependency): `uv run pytest -n auto`
 - Run tests with coverage (pytest-cov is a dev dependency): `uv run pytest --cov=clashless`
+- Run the tutorial notebook(s) under `docs/` as tests (nbval, lax mode — only fails on a cell
+  raising, not on output differences, since the CP-SAT solver isn't guaranteed to return the same
+  schedule byte-for-byte across runs): `uv run pytest --nbval-lax docs`
+- Lint: `uvx ruff check .` — format check: `uvx ruff format --check .` (`uvx` runs ruff from its
+  own isolated environment, not the project's, so this works without `uv sync` first; CI uses this
+  too — see below)
 - Add a runtime dependency: `uv add <package>`
 - Add a dev-only dependency: `uv add --group dev <package>`
+
+CI (`.github/workflows/`) runs on push to `main` and on every pull request: `tests.yml` runs
+`uv sync --all-groups` then the two commands above (test suite + nbval); `lint.yml` runs the two
+`uvx ruff` commands directly, with no project sync at all.
 
 ## Architecture and data model
 

@@ -1,5 +1,6 @@
-from clashless import Unavailability
 from conftest import DATA_DIR
+
+from clashless import Unavailability
 
 
 def test_day_only_restriction_blocks_every_session_that_day():

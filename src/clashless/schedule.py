@@ -1,5 +1,5 @@
-from ortools.sat.python import cp_model
 import pandas as pd
+from ortools.sat.python import cp_model
 
 from clashless.exceptions import SchedulingError
 from clashless.presentations import ROLE_COLUMNS

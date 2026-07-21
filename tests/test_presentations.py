@@ -1,7 +1,7 @@
 import pytest
+from conftest import DATA_DIR
 
 from clashless import Presentations
-from conftest import DATA_DIR
 
 
 def test_loads_valid_presentations():

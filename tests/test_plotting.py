@@ -1,10 +1,10 @@
 import math
 
 import plotly.graph_objects as go
+from conftest import load_scenario
 from openpyxl import load_workbook
 
 from clashless import Schedule, export_schedule_to_excel, plot_schedule
-from conftest import load_scenario
 
 
 def _solve_parallel_rooms_unbounded():
@@ -64,7 +64,9 @@ def test_export_schedule_to_excel_writes_full_details_per_cell(tmp_path):
     scenario, schedule = _solve_parallel_rooms_unbounded()
     path = tmp_path / "schedule.xlsx"
 
-    export_schedule_to_excel(schedule, scenario.presentations, scenario.session_times, path)
+    export_schedule_to_excel(
+        schedule, scenario.presentations, scenario.session_times, path
+    )
 
     workbook = load_workbook(path)
     sheet = workbook.active

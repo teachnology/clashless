@@ -33,12 +33,15 @@ def load_scenario(name: str) -> Scenario:
     return Scenario(name)
 
 
-def assert_valid_schedule(schedule, presentations, unavailability, session_times, n_days):
+def assert_valid_schedule(
+    schedule, presentations, unavailability, session_times, n_days
+):
     """Assert `schedule` satisfies every hard constraint Schedule.solve() must uphold:
-    every presentation scheduled exactly once within range, nobody double-booked across
-    roles at the same (day, session), and no unavailability rule violated. Does NOT check
-    optimality (there is none to check yet) and does NOT forbid multiple presentations
-    from sharing a (day, session) slot, since parallel rooms are unlimited."""
+    every presentation scheduled exactly once within range, nobody double-booked
+    across roles at the same (day, session), and no unavailability rule violated.
+    Does NOT check optimality (there is none to check yet) and does NOT forbid
+    multiple presentations from sharing a (day, session) slot, since parallel rooms
+    are unlimited."""
     data = presentations.data
     n_sessions = session_times.n_sessions
 
@@ -62,5 +65,6 @@ def assert_valid_schedule(schedule, presentations, unavailability, session_times
                 )
             people_in_slot.extend(presentation_people)
         assert len(people_in_slot) == len(set(people_in_slot)), (
-            f"someone is double-booked at day={day}, session={session}: {people_in_slot}"
+            f"someone is double-booked at day={day}, session={session}: "
+            f"{people_in_slot}"
         )

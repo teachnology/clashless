@@ -1,5 +1,6 @@
-from clashless import SessionTimes
 from conftest import DATA_DIR
+
+from clashless import SessionTimes
 
 
 def test_n_sessions_matches_row_count():

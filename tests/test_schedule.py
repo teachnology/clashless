@@ -1,7 +1,7 @@
 import pytest
+from conftest import assert_valid_schedule, load_scenario
 
 from clashless import Schedule, SchedulingError
-from conftest import assert_valid_schedule, load_scenario
 
 
 def _solve(scenario_name: str, n_days: int):

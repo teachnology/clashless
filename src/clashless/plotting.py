@@ -157,11 +157,38 @@ def plot_schedule(schedule, presentations, session_times):
     return fig
 
 
+DATA_COLUMN_WIDTH = 36  # openpyxl width units ~= characters of the default font
+DATA_FONT_SIZE = 10
+POINTS_PER_LINE = 15  # ~ one wrapped line at DATA_FONT_SIZE, including leading
+ROW_PADDING_POINTS = 8
+
+
+def _cell_text(info):
+    return (
+        f"ID: {info['id']}\n"
+        f"{info['student']}\n"
+        f"Supervisors: {info['s1_name']}, {info['s2_name']}\n"
+        f"Moderator: {info['moderator']}\n"
+        f"Day {info['day']}, session {info['session']}"
+    )
+
+
+def _wrapped_line_count(text, column_width):
+    # Estimates how many visual lines `text` wraps to at `column_width` characters
+    # per line - deliberately a slight over-estimate (never under), since a row
+    # that's a touch taller than it needs to be is far less broken than one that
+    # clips or overlaps the row below it.
+    chars_per_line = max(1, int(column_width))
+    return sum(-(-len(line) // chars_per_line) for line in text.split("\n"))
+
+
 def export_schedule_to_excel(schedule, presentations, session_times, path):
     """Write a solved schedule to an .xlsx file as the same room x time grid
     plot_schedule draws. A spreadsheet has no hover, so every occupied cell's full
     detail - id, student, supervisors, moderator, day, and session - is written
-    directly as wrapped text, not just a compact label.
+    directly as wrapped text, not just a compact label. Row heights are sized per
+    row to fit whichever of that row's cells wraps to the most lines, so long
+    names never get clipped or bleed into the row below.
     """
     moderator_order, slot_labels, cells = _build_grid(
         schedule, presentations, session_times
@@ -174,6 +201,7 @@ def export_schedule_to_excel(schedule, presentations, session_times, path):
     header_font = Font(bold=True, color="FFFFFF")
     header_fill = PatternFill("solid", fgColor=ACCENT_COLOR.lstrip("#").upper())
     cell_fill = PatternFill("solid", fgColor=ACCENT_TINT.lstrip("#").upper())
+    data_font = Font(size=DATA_FONT_SIZE)
     wrap_top = Alignment(wrap_text=True, vertical="top")
 
     corner = sheet.cell(row=1, column=1, value="Day · session start time")
@@ -188,31 +216,26 @@ def export_schedule_to_excel(schedule, presentations, session_times, path):
 
     for i, label in enumerate(slot_labels, start=2):
         row_header = sheet.cell(row=i, column=1, value=label)
-        row_header.font = Font(bold=True)
-        row_header.alignment = Alignment(vertical="top")
+        row_header.font = Font(bold=True, size=DATA_FONT_SIZE)
+        row_header.alignment = Alignment(vertical="top", wrap_text=True)
 
+        max_lines = 1
         for j, info in enumerate(cells[i - 2], start=2):
             if info is None:
                 continue
-            excel_cell = sheet.cell(
-                row=i,
-                column=j,
-                value=(
-                    f"ID: {info['id']}\n"
-                    f"{info['student']}\n"
-                    f"Supervisors: {info['s1_name']}, {info['s2_name']}\n"
-                    f"Moderator: {info['moderator']}\n"
-                    f"Day {info['day']}, session {info['session']}"
-                ),
-            )
+            text = _cell_text(info)
+            excel_cell = sheet.cell(row=i, column=j, value=text)
             excel_cell.fill = cell_fill
+            excel_cell.font = data_font
             excel_cell.alignment = wrap_top
+            max_lines = max(max_lines, _wrapped_line_count(text, DATA_COLUMN_WIDTH))
+
+        row_height = max_lines * POINTS_PER_LINE + ROW_PADDING_POINTS
+        sheet.row_dimensions[i].height = row_height
 
     sheet.column_dimensions[get_column_letter(1)].width = 22
     for j in range(2, len(moderator_order) + 2):
-        sheet.column_dimensions[get_column_letter(j)].width = 28
-    for i in range(2, len(slot_labels) + 2):
-        sheet.row_dimensions[i].height = 75
+        sheet.column_dimensions[get_column_letter(j)].width = DATA_COLUMN_WIDTH
 
     sheet.freeze_panes = "B2"
 
