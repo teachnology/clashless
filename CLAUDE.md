@@ -30,6 +30,18 @@ naturally allows unlimited parallel rooms since presentations with disjoint peop
 constrained against each other. This is feasibility-only (v1) — no optimisation objective (e.g.
 minimizing days used) is implemented; `solve()` either succeeds completely or raises.
 
+`plot_schedule(schedule, presentations, session_times)` (`src/clashless/plotting.py`) renders a
+solved schedule as an interactive Plotly timetable: moderators on the x-axis, chronological
+`Day · session` slots on the y-axis — both positional, so room/time identity never needs a color —
+and a single accent color marking occupied cells, each labelled with its presentation id (hover
+shows the full detail: id, student, both supervisors, moderator). It always draws the full day
+range present in the `schedule` passed in, so callers zoom by filtering the DataFrame first (e.g.
+`schedule[schedule["day"] <= 2]`) rather than via a parameter.
+`export_schedule_to_excel(schedule, presentations, session_times, path)` writes the same room x
+time grid to an `.xlsx` file (via `openpyxl`) — since a spreadsheet has no hover, every occupied
+cell's full detail is written directly as wrapped text instead of just an id. Both functions share
+a private `_build_grid` helper so the two stay in lockstep on layout.
+
 ## Commands
 
 This project uses `uv` for dependency and environment management (Python >=3.14, `uv_build`
