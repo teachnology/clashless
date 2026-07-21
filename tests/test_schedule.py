@@ -141,6 +141,52 @@ def test_unlimited_parallel_rooms_share_a_single_slot():
     assert len(schedule) == 3
 
 
+def test_supervisor_is_grouped_into_fewest_possible_days():
+    # Nora Chen moderates p1-p4, Omar Reyes moderates p5-p8; they share one
+    # supervisor (Priya Shah, on p1 and p5), which is just enough cross-
+    # contention that a non-optimizing solver can end up interleaving the two
+    # moderators across 3-4 of the 4 available days instead of cleanly giving
+    # each their own 2 days (the fewest possible at 2 sessions/day for 4
+    # presentations each) - this reproduces the fragmentation the objective is
+    # meant to fix, rather than relying on incidental solver ordering.
+    scenario, schedule = _solve("grouped_into_fewest_days", n_days=4)
+
+    assert_valid_schedule(
+        schedule,
+        scenario.presentations,
+        scenario.unavailability,
+        scenario.session_times,
+        n_days=4,
+    )
+    nora_ids = ["p1", "p2", "p3", "p4"]
+    omar_ids = ["p5", "p6", "p7", "p8"]
+    assert schedule.loc[nora_ids, "day"].nunique() == 2
+    assert schedule.loc[omar_ids, "day"].nunique() == 2
+
+
+def test_few_presentations_are_scheduled_back_to_back():
+    # Eve Davis moderates p1-p3, Frank Ito moderates p4-p6; each of Eve's
+    # presentations shares its supervisor with one of Frank's (Priya Shah,
+    # Quentin Ross, Rosa Diaz), which is enough cross-contention that a non-
+    # optimizing solver can scatter Eve across sessions 1, 3, 4 (spread 3)
+    # instead of packing everyone tightly enough to leave her a contiguous
+    # block (spread 2, the minimum for 3 presentations). There's only one day,
+    # so active-days can't be optimized here - this isolates the secondary
+    # (spread) objective.
+    scenario, schedule = _solve("few_presentations_back_to_back", n_days=1)
+
+    assert_valid_schedule(
+        schedule,
+        scenario.presentations,
+        scenario.unavailability,
+        scenario.session_times,
+        n_days=1,
+    )
+    eve_ids = ["p1", "p2", "p3"]
+    sessions = schedule.loc[eve_ids, "session"]
+    assert sessions.max() - sessions.min() == len(eve_ids) - 1
+
+
 def test_large_synthetic_dataset_produces_a_valid_schedule():
     # Scale smoke-test over the ~290-presentation generated fixture, which has only 6
     # moderators (one chairs up to ~53 presentations). n_days=10 (80 slots at 8
