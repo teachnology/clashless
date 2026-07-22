@@ -8,11 +8,11 @@ from clashless.unavailability import Unavailability
 
 __all__ = [
     "Presentations",
-    "Unavailability",
-    "SessionTimes",
     "Schedule",
     "SchedulingError",
-    "plot_schedule",
+    "SessionTimes",
+    "Unavailability",
     "export_schedule_to_excel",
     "isvalid",
+    "plot_schedule",
 ]

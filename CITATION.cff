@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "clashless"
+version: 0.1.0
+authors:
+  - family-names: "Beg"
+    given-names: "Marijan"
+    email: "m.beg@imperial.ac.uk"
+license: MIT
+repository-code: "https://github.com/teachnology/clashless"
+keywords:
+  - scheduling
+  - timetabling
+  - constraint-programming
+  - cp-sat
+  - or-tools

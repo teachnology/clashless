@@ -2,8 +2,7 @@ import pandas as pd
 
 
 class SessionTimes:
-    """Wraps a session-times table; the same sessions apply every conference
-    day.
+    """Wrap a session-times table; the same sessions apply every conference day.
 
     `source` is a `pd.DataFrame` or a `pd.Series` (its natural single-column
     shape, being one `start_time` value per session), already indexed by
@@ -23,4 +22,5 @@ class SessionTimes:
         self.data = data
 
     def __len__(self):
+        """Return the number of sessions per day."""
         return len(self.data)

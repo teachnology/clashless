@@ -3,16 +3,35 @@ name = "clashless"
 version = "0.1.0"
 description = "Clash-free scheduling: assigns presentations to day/session slots without double-booking anyone"
 readme = "README.md"
+license = "MIT"
 authors = [
     { name = "Marijan Beg", email = "m.beg@imperial.ac.uk" }
 ]
 requires-python = ">=3.14"
+keywords = [
+    "scheduling",
+    "timetabling",
+    "constraint-programming",
+    "cp-sat",
+    "or-tools",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: OS Independent",
+    "Topic :: Office/Business :: Scheduling",
+]
 dependencies = [
     "openpyxl>=3.1.5",
     "ortools>=9.15.6755",
     "pandas>=3.0.3",
     "plotly>=6.9.0",
 ]
+
+[project.urls]
+Repository = "https://github.com/teachnology/clashless"
 
 [build-system]
 requires = ["uv_build>=0.11.28,<0.12.0"]
@@ -28,12 +47,44 @@ dev = [
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "pytest-xdist>=3.8.0",
-    "ruff>=0.15.22",
 ]
 
 [tool.ruff]
 target-version = "py314"
 line-length = 88
+extend-include = ["*.ipynb"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I"]
+select = [
+    "F",    # flake8
+    "E",    # pycodestyle
+    "W",    # pycodestyle (warnings)
+    "N",    # pep8-naming
+    "E501", # line too long - not enabled by default
+    "UP",   # pyupgrade
+    "I",    # isort
+    "D",    # pydocstyle
+    "PD",   # pandas-vet
+    "PL",   # pylint
+    "NPY",  # numpy
+    "RUF",  # ruff
+]
+ignore = [
+    "D100",    # Missing docstring in public module
+    "PLR2004", # Magic value used in comparison
+    "PLR0911", # Too many return statements
+    "PLR0913", # Too many arguments in function definition
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["D"]
+"tests/*" = ["D"]
+
+[tool.coverage.run]
+omit = ["tests/*.py"]
+
+[tool.pytest.ini_options]
+addopts = "-v -n auto --dist=loadscope --doctest-modules --cov=clashless --cov-report=html --cov-report=term"

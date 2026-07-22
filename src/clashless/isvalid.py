@@ -8,10 +8,10 @@ TOP_N_MOST_FREQUENT = 10
 
 
 def report(presentations):
-    """Print a short, human-facing report on repetition across a
-    Presentations table: nothing here is enforced by `Presentations` itself
-    (the four roles are fully symmetric), so this is purely informational -
-    it never raises.
+    """Print a short, human-facing report on repetition across a Presentations table.
+
+    Nothing here is enforced by `Presentations` itself (the four roles are
+    fully symmetric), so this is purely informational - it never raises.
 
     Covers, for the four role columns (participant_1, participant_2,
     participant_3, chair): how unique each column is, how often the same
@@ -49,11 +49,12 @@ def report(presentations):
 
 
 def check_schedule(schedule, presentations, unavailability):
-    """Check `schedule` for clashes - double-bookings and unavailability
-    violations - and print a short reassurance report. Returns `True` if none
-    were found. `Schedule.solve()` already guarantees a clash-free result
-    internally; this is for double-checking a schedule built or edited some
-    other way.
+    """Check `schedule` for clashes and print a short reassurance report.
+
+    Covers double-bookings and unavailability violations, and returns `True`
+    if none were found. `Schedule.solve()` already guarantees a clash-free
+    result internally; this is for double-checking a schedule built or
+    edited some other way.
     """
     data = presentations.data
     double_bookings = []

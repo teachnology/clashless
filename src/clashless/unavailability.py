@@ -2,8 +2,7 @@ import pandas as pd
 
 
 class Unavailability:
-    """Wraps an unavailability table and answers is_unavailable(person, day,
-    session) queries.
+    """Wrap an unavailability table and answer is_unavailable queries.
 
     `source` is a `pd.DataFrame` with `person`, nullable `day`, and nullable
     `session` columns. `columns`, if given, maps your own column names to
@@ -28,6 +27,7 @@ class Unavailability:
         }
 
     def is_unavailable(self, person, day, session):
+        """Return whether `person` is unavailable at (day, session)."""
         for rule_day, rule_session in self._rules_by_person.get(person, []):
             day_matches = pd.isna(rule_day) or rule_day == day
             session_matches = pd.isna(rule_session) or rule_session == session

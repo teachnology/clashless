@@ -25,11 +25,14 @@ def _format_time(value):
 
 
 def _build_grid(schedule, presentations, session_times):
-    """Lay a solved schedule out on a room x time grid: shared by plot_schedule and
-    export_schedule_to_excel so both render exactly the same layout. Returns the
-    ordered room (chair) labels, the ordered chronological slot labels, and a
-    slot_labels x chair_order matrix of per-presentation detail dicts (None
-    where nothing is scheduled)."""
+    """Lay a solved schedule out on a room x time grid.
+
+    Shared by plot_schedule and export_schedule_to_excel so both render
+    exactly the same layout. Returns the ordered room (chair) labels, the
+    ordered chronological slot labels, and a slot_labels x chair_order
+    matrix of per-presentation detail dicts (None where nothing is
+    scheduled).
+    """
     data = presentations.data
     n_sessions = len(session_times)
     start_times = session_times.data["start_time"]
@@ -183,12 +186,13 @@ def _wrapped_line_count(text, column_width):
 
 
 def export_schedule_to_excel(schedule, presentations, session_times, path):
-    """Write a solved schedule to an .xlsx file as the same room x time grid
-    plot_schedule draws. A spreadsheet has no hover, so every occupied cell's full
-    detail - id, participants, chair, day, and session - is written directly as
-    wrapped text, not just a compact label. Row heights are sized per row to fit
-    whichever of that row's cells wraps to the most lines, so long names never
-    get clipped or bleed into the row below.
+    """Write a solved schedule to an .xlsx file, mirroring plot_schedule's layout.
+
+    A spreadsheet has no hover, so every occupied cell's full detail - id,
+    participants, chair, day, and session - is written directly as wrapped
+    text, not just a compact label. Row heights are sized per row to fit
+    whichever of that row's cells wraps to the most lines, so long names
+    never get clipped or bleed into the row below.
     """
     chair_order, slot_labels, cells = _build_grid(
         schedule, presentations, session_times

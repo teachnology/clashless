@@ -13,10 +13,11 @@ DEFAULT_MAX_SOLVE_SECONDS = 30.0
 
 
 class Schedule:
-    """Assigns each presentation a (day, session) slot such that no person is
-    double-booked across roles at the same slot and no unavailability rule is
-    violated. Rooms are unlimited: any number of presentations may share a slot
-    provided they share no people.
+    """Assign each presentation a (day, session) slot with no clashes.
+
+    No person is double-booked across roles at the same slot and no
+    unavailability rule is violated. Rooms are unlimited: any number of
+    presentations may share a slot provided they share no people.
 
     Modelled as a CP-SAT constraint problem: one slot variable per presentation
     (domain restricted by unavailability), and an AllDifferent constraint per
@@ -62,6 +63,7 @@ class Schedule:
         self.max_solve_seconds = max_solve_seconds
 
     def solve(self):
+        """Solve for a schedule and return the resulting day/session DataFrame."""
         data = self.presentations.data
         ids = list(data.index)
         n_sessions = len(self.session_times)
