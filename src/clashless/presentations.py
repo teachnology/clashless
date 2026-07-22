@@ -1,16 +1,16 @@
-from clashless._io import load_table
-
 ROLE_COLUMNS = ["participant_1", "participant_2", "participant_3", "chair"]
 
 
 class Presentations:
-    """Loads presentations.csv, or an equivalent in-memory `pd.DataFrame`.
+    """Wraps a presentations table.
 
-    `source` may be a CSV path, an existing DataFrame, or (as a path) anything
-    `pandas.read_csv` accepts. `columns`, if given, maps your own column names
-    to the ones clashless expects (`id`, `participant_1`, `participant_2`,
-    `participant_3`, `chair`) - e.g. `columns={"student": "participant_1"}` -
-    so you don't have to rename your own data by hand first.
+    `source` is a `pd.DataFrame` already indexed by presentation id - the
+    index is taken as-is, whatever it's named, and must be unique (a
+    `ValueError` is raised otherwise). `columns`, if given, maps your own
+    role-column names to the ones clashless expects (`participant_1`,
+    `participant_2`, `participant_3`, `chair`) - e.g.
+    `columns={"student": "participant_1"}` - so you don't have to rename your
+    own data by hand first.
 
     Every presentation has four symmetric roles: `participant_1`,
     `participant_2`, `participant_3`, and `chair`. No role is special and
@@ -22,5 +22,11 @@ class Presentations:
     """
 
     def __init__(self, source, columns=None):
-        data = load_table(source, columns).set_index("id")
+        data = source.copy()
+        if columns:
+            data = data.rename(columns=columns)
+
+        if not data.index.is_unique:
+            raise ValueError("Presentation ids must be unique.")
+
         self.data = data

@@ -1,15 +1,13 @@
 import pandas as pd
 
-from clashless._io import load_table
-
 
 class Unavailability:
-    """Loads unavailable.csv, or an equivalent in-memory `pd.DataFrame`, and
-    answers is_unavailable(person, day, session) queries.
+    """Wraps an unavailability table and answers is_unavailable(person, day,
+    session) queries.
 
-    `source` may be a CSV path or a DataFrame with `person`, nullable `day`,
-    and nullable `session` columns. `columns`, if given, maps your own column
-    names to those three.
+    `source` is a `pd.DataFrame` with `person`, nullable `day`, and nullable
+    `session` columns. `columns`, if given, maps your own column names to
+    those three.
 
     A row's nullable day/session act as wildcards:
       - day set, session null   -> unavailable the whole day
@@ -19,9 +17,11 @@ class Unavailability:
     """
 
     def __init__(self, source, columns=None):
-        self.data = load_table(source, columns).astype(
-            {"day": "Int64", "session": "Int64"}
-        )
+        data = source.copy()
+        if columns:
+            data = data.rename(columns=columns)
+
+        self.data = data.astype({"day": "Int64", "session": "Int64"})
         self._rules_by_person = {
             person: list(zip(rows["day"], rows["session"]))
             for person, rows in self.data.groupby("person")

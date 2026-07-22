@@ -3,7 +3,7 @@ import time
 import pytest
 from conftest import assert_valid_schedule, load_scenario
 
-from clashless import Schedule, SchedulingError
+import clashless as cl
 
 # Generous enough to never flake on a slow CI runner, but far enough below the
 # 30s default that it clearly proves the toggle/time-budget actually took effect.
@@ -12,7 +12,7 @@ FAST_SOLVE_CEILING_SECONDS = 10
 
 def _solve(scenario_name: str, n_days: int):
     scenario = load_scenario(scenario_name)
-    schedule = Schedule(
+    schedule = cl.Schedule(
         scenario.presentations,
         scenario.unavailability,
         scenario.session_times,
@@ -109,8 +109,8 @@ def test_unavailable_specific_slot_is_forced_to_the_remaining_slot():
 def test_unavailable_entire_conference_is_infeasible():
     scenario = load_scenario("unavailable_entire_conference")
 
-    with pytest.raises(SchedulingError):
-        Schedule(
+    with pytest.raises(cl.SchedulingError):
+        cl.Schedule(
             scenario.presentations,
             scenario.unavailability,
             scenario.session_times,
@@ -121,8 +121,8 @@ def test_unavailable_entire_conference_is_infeasible():
 def test_insufficient_capacity_is_infeasible():
     scenario = load_scenario("insufficient_capacity")
 
-    with pytest.raises(SchedulingError):
-        Schedule(
+    with pytest.raises(cl.SchedulingError):
+        cl.Schedule(
             scenario.presentations,
             scenario.unavailability,
             scenario.session_times,
@@ -220,7 +220,7 @@ def test_optimize_grouping_false_skips_the_objective_and_solves_fast():
     scenario = load_scenario("several_competing_moderators")
 
     start = time.perf_counter()
-    schedule = Schedule(
+    schedule = cl.Schedule(
         scenario.presentations,
         scenario.unavailability,
         scenario.session_times,
@@ -248,7 +248,7 @@ def test_max_solve_seconds_bounds_the_search_time():
     scenario = load_scenario("several_competing_moderators")
 
     start = time.perf_counter()
-    schedule = Schedule(
+    schedule = cl.Schedule(
         scenario.presentations,
         scenario.unavailability,
         scenario.session_times,
@@ -277,7 +277,7 @@ def test_spread_weight_can_be_prioritized_over_active_days():
     # ignored.
     scenario = load_scenario("grouped_into_fewest_days")
 
-    schedule = Schedule(
+    schedule = cl.Schedule(
         scenario.presentations,
         scenario.unavailability,
         scenario.session_times,
@@ -314,14 +314,14 @@ def test_grouping_is_never_worse_than_not_grouping():
     scenario = load_scenario("several_competing_moderators")
 
     for _ in range(3):
-        ungrouped = Schedule(
+        ungrouped = cl.Schedule(
             scenario.presentations,
             scenario.unavailability,
             scenario.session_times,
             n_days=6,
             optimize_grouping=False,
         ).solve()
-        grouped = Schedule(
+        grouped = cl.Schedule(
             scenario.presentations,
             scenario.unavailability,
             scenario.session_times,

@@ -56,7 +56,7 @@ class Schedule:
         self.active_day_weight = (
             active_day_weight
             if active_day_weight is not None
-            else n_days * session_times.n_sessions
+            else n_days * len(session_times)
         )
         self.spread_weight = spread_weight
         self.max_solve_seconds = max_solve_seconds
@@ -64,7 +64,7 @@ class Schedule:
     def solve(self):
         data = self.presentations.data
         ids = list(data.index)
-        n_sessions = self.session_times.n_sessions
+        n_sessions = len(self.session_times)
         n_slots = self.n_days * n_sessions
 
         def day_session(index):
@@ -88,7 +88,7 @@ class Schedule:
             ]
             if not allowed:
                 raise SchedulingError(
-                    f"presentation {presentation_id!r} has no available slot"
+                    f"Presentation {presentation_id!r} has no available slot."
                 )
             slot_vars[presentation_id] = model.new_int_var_from_domain(
                 cp_model.Domain.FromValues(allowed), f"slot_{presentation_id}"
@@ -112,7 +112,7 @@ class Schedule:
 
         if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
             raise SchedulingError(
-                "no schedule satisfies every constraint for the given n_days"
+                "No schedule satisfies every constraint for the given n_days."
             )
 
         days, sessions = [], []
@@ -139,7 +139,7 @@ class Schedule:
         status = warm_start_solver.solve(model)
         if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
             raise SchedulingError(
-                "no schedule satisfies every constraint for the given n_days"
+                "No schedule satisfies every constraint for the given n_days."
             )
         return {
             presentation_id: warm_start_solver.value(slot_var)

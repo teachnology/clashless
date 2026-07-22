@@ -31,7 +31,7 @@ def _build_grid(schedule, presentations, session_times):
     slot_labels x chair_order matrix of per-presentation detail dicts (None
     where nothing is scheduled)."""
     data = presentations.data
-    n_sessions = session_times.n_sessions
+    n_sessions = len(session_times)
     start_times = session_times.data["start_time"]
     n_days = int(schedule["day"].max())
 

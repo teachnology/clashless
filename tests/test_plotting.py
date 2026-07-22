@@ -4,12 +4,12 @@ import plotly.graph_objects as go
 from conftest import load_scenario
 from openpyxl import load_workbook
 
-from clashless import Schedule, export_schedule_to_excel, plot_schedule
+import clashless as cl
 
 
 def _solve_parallel_rooms_unbounded():
     scenario = load_scenario("parallel_rooms_unbounded")
-    schedule = Schedule(
+    schedule = cl.Schedule(
         scenario.presentations,
         scenario.unavailability,
         scenario.session_times,
@@ -21,7 +21,7 @@ def _solve_parallel_rooms_unbounded():
 def test_plot_schedule_returns_a_figure_with_one_cell_per_presentation():
     scenario, schedule = _solve_parallel_rooms_unbounded()
 
-    fig = plot_schedule(schedule, scenario.presentations, scenario.session_times)
+    fig = cl.plot_schedule(schedule, scenario.presentations, scenario.session_times)
 
     assert isinstance(fig, go.Figure)
     heatmap = fig.data[0]
@@ -36,7 +36,7 @@ def test_plot_schedule_returns_a_figure_with_one_cell_per_presentation():
 def test_plot_schedule_labels_each_cell_with_its_presentation_id():
     scenario, schedule = _solve_parallel_rooms_unbounded()
 
-    fig = plot_schedule(schedule, scenario.presentations, scenario.session_times)
+    fig = cl.plot_schedule(schedule, scenario.presentations, scenario.session_times)
     heatmap = fig.data[0]
 
     labelled_ids = {value for row in heatmap.text for value in row if value}
@@ -46,7 +46,7 @@ def test_plot_schedule_labels_each_cell_with_its_presentation_id():
 def test_plot_schedule_hover_includes_id_and_participants():
     scenario, schedule = _solve_parallel_rooms_unbounded()
 
-    fig = plot_schedule(schedule, scenario.presentations, scenario.session_times)
+    fig = cl.plot_schedule(schedule, scenario.presentations, scenario.session_times)
     heatmap = fig.data[0]
 
     presentation_id = schedule.index[0]
@@ -64,7 +64,7 @@ def test_export_schedule_to_excel_writes_full_details_per_cell(tmp_path):
     scenario, schedule = _solve_parallel_rooms_unbounded()
     path = tmp_path / "schedule.xlsx"
 
-    export_schedule_to_excel(
+    cl.export_schedule_to_excel(
         schedule, scenario.presentations, scenario.session_times, path
     )
 

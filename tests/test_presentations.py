@@ -1,10 +1,12 @@
-from conftest import DATA_DIR
+from conftest import DATA_DIR, read_presentations
 
-from clashless import Presentations
+import clashless as cl
 
 
 def test_loads_valid_presentations():
-    presentations = Presentations(DATA_DIR / "feasible_minimal" / "presentations.csv")
+    presentations = cl.Presentations(
+        read_presentations(DATA_DIR / "feasible_minimal" / "presentations.csv")
+    )
 
     assert list(presentations.data.index) == ["p1", "p2"]
     assert list(presentations.data.columns) == [
@@ -19,8 +21,10 @@ def test_repeats_within_a_presentation_are_accepted():
     # The four roles are fully symmetric - the same person may hold two roles
     # within their own presentation (e.g. a participant chairing their own
     # session) without being rejected as a duplicate.
-    presentations = Presentations(
-        DATA_DIR / "moderator_is_own_supervisor" / "presentations.csv"
+    presentations = cl.Presentations(
+        read_presentations(
+            DATA_DIR / "moderator_is_own_supervisor" / "presentations.csv"
+        )
     )
 
     row = presentations.data.loc["p1"]

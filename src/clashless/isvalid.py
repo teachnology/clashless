@@ -46,3 +46,53 @@ def report(presentations):
         lines.append(f"  {person}: {count}")
 
     print("\n".join(lines))
+
+
+def check_schedule(schedule, presentations, unavailability):
+    """Check `schedule` for clashes - double-bookings and unavailability
+    violations - and print a short reassurance report. Returns `True` if none
+    were found. `Schedule.solve()` already guarantees a clash-free result
+    internally; this is for double-checking a schedule built or edited some
+    other way.
+    """
+    data = presentations.data
+    double_bookings = []
+    unavailability_violations = []
+
+    for (day, session), group in schedule.groupby(["day", "session"]):
+        people_in_slot = []
+        for presentation_id in group.index:
+            # A person may hold two roles within their OWN presentation (e.g.
+            # a participant chairing their own session) - that's not a clash.
+            # Dedupe per presentation before checking against OTHER ones.
+            presentation_people = set(data.loc[presentation_id, ROLE_COLUMNS])
+            for person in presentation_people:
+                if unavailability.is_unavailable(person, day, session):
+                    unavailability_violations.append(
+                        (person, day, session, presentation_id)
+                    )
+            people_in_slot.extend(presentation_people)
+
+        seen = set()
+        for person in people_in_slot:
+            if person in seen:
+                double_bookings.append((person, day, session))
+            seen.add(person)
+
+    lines = ["Schedule clash report", f"Presentations: {len(schedule)}", ""]
+    if double_bookings:
+        lines.append(f"Double-booking clashes ({len(double_bookings)}):")
+        for person, day, session in double_bookings:
+            lines.append(f"  {person}: day {day}, session {session}")
+    if unavailability_violations:
+        lines.append(f"Unavailability violations ({len(unavailability_violations)}):")
+        for person, day, session, presentation_id in unavailability_violations:
+            lines.append(
+                f"  {person}: unavailable at day {day}, session {session} "
+                f"but scheduled for {presentation_id}"
+            )
+    if not double_bookings and not unavailability_violations:
+        lines.append("No clashes found.")
+
+    print("\n".join(lines))
+    return not double_bookings and not unavailability_violations

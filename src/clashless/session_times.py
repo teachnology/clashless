@@ -1,19 +1,26 @@
-from clashless._io import load_table
+import pandas as pd
 
 
 class SessionTimes:
-    """Loads session-start-times.csv, or an equivalent in-memory
-    `pd.DataFrame`/`pd.Series`; the same sessions apply every conference day.
+    """Wraps a session-times table; the same sessions apply every conference
+    day.
 
-    `source` may be a CSV path, a DataFrame, or a Series indexed by session
-    number (its natural shape, being a single `start_time` value per
-    session). `columns`, if given, maps your own column/index names to the
-    ones clashless expects (`session`, `start_time`).
+    `source` is a `pd.DataFrame` or a `pd.Series` (its natural single-column
+    shape, being one `start_time` value per session), already indexed by
+    session number - the index is taken as-is, whatever it's named, and must
+    be unique (a `ValueError` is raised otherwise). `columns`, if given, maps
+    your own column name to the one clashless expects (`start_time`).
     """
 
     def __init__(self, source, columns=None):
-        self.data = load_table(source, columns).set_index("session")
+        data = source.to_frame() if isinstance(source, pd.Series) else source.copy()
+        if columns:
+            data = data.rename(columns=columns)
 
-    @property
-    def n_sessions(self):
+        if not data.index.is_unique:
+            raise ValueError("Session numbers must be unique.")
+
+        self.data = data
+
+    def __len__(self):
         return len(self.data)
