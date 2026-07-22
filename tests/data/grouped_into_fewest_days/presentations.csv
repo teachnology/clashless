@@ -1,4 +1,4 @@
-id,student,s1_name,s2_name,moderator
+id,participant_1,participant_2,participant_3,chair
 p1,Student A,Priya Shah,Other One,Nora Chen
 p2,Student B,Other Two,Other Three,Nora Chen
 p3,Student C,Other Four,Other Five,Nora Chen

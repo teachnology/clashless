@@ -1,27 +1,26 @@
-import pandas as pd
+from clashless._io import load_table
 
-ROLE_COLUMNS = ["student", "s1_name", "s2_name", "moderator"]
+ROLE_COLUMNS = ["participant_1", "participant_2", "participant_3", "chair"]
 
 
 class Presentations:
-    """Loads and validates presentations.csv.
+    """Loads presentations.csv, or an equivalent in-memory `pd.DataFrame`.
 
-    A presentation's moderator may be one of its own supervisors (a supervisor
-    chairing their own session) - that is not a validation error.
+    `source` may be a CSV path, an existing DataFrame, or (as a path) anything
+    `pandas.read_csv` accepts. `columns`, if given, maps your own column names
+    to the ones clashless expects (`id`, `participant_1`, `participant_2`,
+    `participant_3`, `chair`) - e.g. `columns={"student": "participant_1"}` -
+    so you don't have to rename your own data by hand first.
+
+    Every presentation has four symmetric roles: `participant_1`,
+    `participant_2`, `participant_3`, and `chair`. No role is special and
+    nothing about repetition is enforced - the same person may appear in more
+    than one role, including more than once within the same presentation's
+    own row (e.g. a participant chairing their own session). Use
+    `clashless.isvalid.report` to see a summary of whatever repetition your
+    data actually has.
     """
 
-    def __init__(self, path):
-        data = pd.read_csv(path, index_col="id")
-        self._validate(data)
+    def __init__(self, source, columns=None):
+        data = load_table(source, columns).set_index("id")
         self.data = data
-
-    @staticmethod
-    def _validate(data):
-        if not data["student"].is_unique:
-            raise ValueError("student names must be unique")
-        if (data["s1_name"] == data["s2_name"]).any():
-            raise ValueError("s1_name and s2_name must differ for every presentation")
-        if (data["student"] == data["s1_name"]).any() or (
-            data["student"] == data["s2_name"]
-        ).any():
-            raise ValueError("a student cannot be their own supervisor")

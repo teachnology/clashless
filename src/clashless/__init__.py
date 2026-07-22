@@ -1,3 +1,4 @@
+from clashless import isvalid
 from clashless.exceptions import SchedulingError
 from clashless.plotting import export_schedule_to_excel, plot_schedule
 from clashless.presentations import Presentations
@@ -13,4 +14,5 @@ __all__ = [
     "SchedulingError",
     "plot_schedule",
     "export_schedule_to_excel",
+    "isvalid",
 ]

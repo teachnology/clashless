@@ -4,7 +4,7 @@ from clashless import Presentations, SessionTimes, Unavailability
 
 DATA_DIR = pathlib.Path(__file__).parent / "data"
 
-ROLE_COLUMNS = ["student", "s1_name", "s2_name", "moderator"]
+ROLE_COLUMNS = ["participant_1", "participant_2", "participant_3", "chair"]
 
 
 class Scenario:
@@ -55,7 +55,7 @@ def assert_valid_schedule(
         for presentation_id in group.index:
             row = data.loc[presentation_id]
             # A person may hold two roles within their OWN presentation (e.g. a
-            # supervisor chairing their own session) - that's not a clash. Dedupe
+            # participant chairing their own session) - that's not a clash. Dedupe
             # per presentation before checking for clashes against OTHER presentations.
             presentation_people = set(row[ROLE_COLUMNS])
             for person in presentation_people:

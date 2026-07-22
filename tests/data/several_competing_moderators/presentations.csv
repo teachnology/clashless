@@ -1,4 +1,4 @@
-id,student,s1_name,s2_name,moderator
+id,participant_1,participant_2,participant_3,chair
 p1,Student1,Shared0,Other1,Mod0
 p2,Student2,Sup0_1,Other2,Mod0
 p3,Student3,Sup0_2,Other3,Mod0

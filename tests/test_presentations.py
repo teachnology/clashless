@@ -1,4 +1,3 @@
-import pytest
 from conftest import DATA_DIR
 
 from clashless import Presentations
@@ -9,34 +8,20 @@ def test_loads_valid_presentations():
 
     assert list(presentations.data.index) == ["p1", "p2"]
     assert list(presentations.data.columns) == [
-        "student",
-        "s1_name",
-        "s2_name",
-        "moderator",
+        "participant_1",
+        "participant_2",
+        "participant_3",
+        "chair",
     ]
 
 
-def test_moderator_may_equal_a_supervisor():
-    # A supervisor chairing their own presentation (moderator == s1_name) must be
-    # accepted, not rejected as a duplicate-name error.
+def test_repeats_within_a_presentation_are_accepted():
+    # The four roles are fully symmetric - the same person may hold two roles
+    # within their own presentation (e.g. a participant chairing their own
+    # session) without being rejected as a duplicate.
     presentations = Presentations(
         DATA_DIR / "moderator_is_own_supervisor" / "presentations.csv"
     )
 
     row = presentations.data.loc["p1"]
-    assert row["moderator"] == row["s1_name"]
-
-
-def test_rejects_duplicate_student_names():
-    with pytest.raises(ValueError):
-        Presentations(DATA_DIR / "invalid_duplicate_student" / "presentations.csv")
-
-
-def test_rejects_same_supervisor_for_both_slots():
-    with pytest.raises(ValueError):
-        Presentations(DATA_DIR / "invalid_same_supervisor" / "presentations.csv")
-
-
-def test_rejects_student_supervising_themselves():
-    with pytest.raises(ValueError):
-        Presentations(DATA_DIR / "invalid_self_supervision" / "presentations.csv")
+    assert row["chair"] == row["participant_2"]
