@@ -1,0 +1,20 @@
+- [x] abandon student, s1... names and do it p1, p2, moderator/session...
+- [x] expose role_columns somewhere so that custom column names can be assigned to the expected ones.
+- [x] input classes are expecting paths, but dataframes/series should be passed
+- [x] SessionTimes.n_sessions -> `__len__`
+- [x] In tutorials, I prefer to use `import clashless as cl` instead of `from ... import ...`
+- [x] expose _validate methods to be in a similar submodule: clashless.isvalid.presentations(...)
+- [x] add method to check that there are no clashes in the schedule - this should be a convenience method so that the user can quickly get reassurance that the schedule works - goes to `isvalid`.
+- [x] determine if the algorithm is deterministic or not
+- [ ] populate readme
+- [ ] add docstrings
+- [ ] build sphinx documentation
+- [x] what is py.typed?
+- [ ] extend ruff configuration as in other teachnology projects
+- [ ] make it somewhere in docs clear what hard/soft constraints are
+- [ ] docstrings should have input parameters, mini examples, written in numpy style. Check what/how fixtures should be used for docstring tests.
+- [ ] extend tests to run docstring tests
+- [ ] Remove numbers from tutorials 
+- [ ] index notebook for all tutorials
+- [ ] document day_session in schedule
+- [ ] release to PyPI workflow.
