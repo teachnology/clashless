@@ -146,7 +146,13 @@ backend).
 
 CI (`.github/workflows/`) runs on push to `main` and on every pull request: `tests.yml` runs
 `uv sync --all-groups` then the two commands above (test suite + nbval); `ruff.yml` runs the two
-`uvx ruff` commands directly, with no project sync at all.
+`uvx ruff` commands directly, with no project sync at all. `release.yml` triggers on a published
+GitHub release, re-runs both the test suite and ruff, then builds with `uv build` and publishes to
+PyPI via `uv publish --trusted-publishing always`.
+
+`changes.md` at the repo root is the running roadmap/TODO checklist for this project (docstrings,
+Sphinx docs, README content, etc.) - check it for planned-but-not-yet-done work before assuming
+something is out of scope.
 
 ## Architecture and data model
 
