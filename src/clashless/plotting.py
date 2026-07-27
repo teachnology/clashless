@@ -1,3 +1,5 @@
+from collections import Counter
+
 import plotly.graph_objects as go
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -16,78 +18,76 @@ AXIS_COLOR = "#c3c2b7"
 FONT_FAMILY = 'system-ui, -apple-system, "Segoe UI", sans-serif'
 
 
-def _format_time(value):
-    # session-start-times.csv round-trips "start_time" as a plain string
-    # (e.g. "09:30:00"); a real datetime.time is also accepted.
-    if hasattr(value, "strftime"):
-        return value.strftime("%H:%M")
-    return str(value)[:5]
+def _slot_label(day, slot, slot_labels):
+    label = (slot_labels or {}).get(slot, f"Slot {slot}")
+    return f"Day {day} · {label}"
 
 
-def _build_grid(schedule, presentations, session_times):
+def _build_grid(  # noqa: PLR0917
+    schedule, participants, sessions, n_days, n_slots, slot_labels=None
+):
     """Lay a solved schedule out on a room x time grid.
 
     Shared by plot_schedule and export_schedule_to_excel so both render
-    exactly the same layout. Returns the ordered room (chair) labels, the
-    ordered chronological slot labels, and a slot_labels x chair_order
-    matrix of per-presentation detail dicts (None where nothing is
-    scheduled).
+    exactly the same layout. Returns the ordered session (room) labels, the
+    ordered chronological row labels, and a row_labels x session_order matrix
+    of per-presentation detail dicts (None where nothing is scheduled).
     """
-    data = presentations.data
-    n_sessions = len(session_times)
-    start_times = session_times.data["start_time"]
-    n_days = int(schedule["day"].max())
-
-    merged = schedule.join(data)
-    chair_order = merged["chair"].value_counts().index.tolist()
-
-    def slot_label(day, session):
-        return f"Day {day} · {_format_time(start_times.loc[session])}"
-
-    slot_labels = [
-        slot_label(day, session)
-        for day in range(1, n_days + 1)
-        for session in range(1, n_sessions + 1)
+    session_order = [
+        session
+        for session, _ in Counter(
+            sessions.data[presentation_id] for presentation_id in schedule
+        ).most_common()
     ]
-    row_index = {label: i for i, label in enumerate(slot_labels)}
-    column_index = {chair: j for j, chair in enumerate(chair_order)}
 
-    cells = [[None] * len(chair_order) for _ in slot_labels]
-    for presentation_id, row in merged.iterrows():
-        i = row_index[slot_label(row["day"], row["session"])]
-        j = column_index[row["chair"]]
+    row_labels = [
+        _slot_label(day, slot, slot_labels)
+        for day in range(1, n_days + 1)
+        for slot in range(1, n_slots + 1)
+    ]
+    row_index = {label: i for i, label in enumerate(row_labels)}
+    column_index = {session: j for j, session in enumerate(session_order)}
+
+    cells = [[None] * len(session_order) for _ in row_labels]
+    for presentation_id, entry in schedule.items():
+        day, slot = entry["day"], entry["slot"]
+        session = sessions.data[presentation_id]
+        i = row_index[_slot_label(day, slot, slot_labels)]
+        j = column_index[session]
         cells[i][j] = {
             "id": presentation_id,
-            "participant_1": row["participant_1"],
-            "participant_2": row["participant_2"],
-            "participant_3": row["participant_3"],
-            "chair": row["chair"],
-            "day": row["day"],
-            "session": row["session"],
+            "participants": participants.data[presentation_id],
+            "session": session,
+            "day": day,
+            "slot": slot,
         }
 
-    return chair_order, slot_labels, cells
+    return session_order, row_labels, cells
 
 
-def plot_schedule(schedule, presentations, session_times):
+def plot_schedule(  # noqa: PLR0917
+    schedule, participants, sessions, n_days, n_slots, slot_labels=None
+):
     """Render an interactive timetable for a solved Schedule.
 
-    Rooms (chairs) run along the x-axis and chronological (day, session) slots
-    run down the y-axis - both are positional, so they carry room/time identity
-    without needing a color per chair. Each filled cell is one scheduled
-    presentation in the single accent color, labelled with its presentation id;
-    hovering it shows the full detail - id, participants, and chair. Empty
-    cells are real gaps: a chair only owns one room for the whole day they're
-    chairing, so a free slot in their column means nothing is scheduled there,
-    not missing data.
+    Sessions (rooms/tracks) run along the x-axis and chronological (day, slot)
+    rows run down the y-axis - both are positional, so they carry room/time
+    identity without needing a color per session. Each filled cell is one
+    scheduled presentation in the single accent color, labelled with its
+    presentation id; hovering it shows the full detail - id, participants,
+    and session. Empty cells are real gaps: a session only owns one room for
+    the whole day it runs, so a free slot in its column means nothing is
+    scheduled there, not missing data. `slot_labels`, if given, is an
+    optional `{slot_number: "09:00"}` map for cosmetic row labels - purely
+    for display, entirely decoupled from scheduling.
     """
-    chair_order, slot_labels, cells = _build_grid(
-        schedule, presentations, session_times
+    session_order, row_labels, cells = _build_grid(
+        schedule, participants, sessions, n_days, n_slots, slot_labels
     )
 
-    z = [[float("nan")] * len(chair_order) for _ in slot_labels]
-    id_labels = [[""] * len(chair_order) for _ in slot_labels]
-    hover_text = [[""] * len(chair_order) for _ in slot_labels]
+    z = [[float("nan")] * len(session_order) for _ in row_labels]
+    id_labels = [[""] * len(session_order) for _ in row_labels]
+    hover_text = [[""] * len(session_order) for _ in row_labels]
 
     for i, row_cells in enumerate(cells):
         for j, info in enumerate(row_cells):
@@ -97,17 +97,16 @@ def plot_schedule(schedule, presentations, session_times):
             id_labels[i][j] = str(info["id"])
             hover_text[i][j] = (
                 f"<b>ID: {info['id']}</b><br>"
-                f"Participants: {info['participant_1']}, {info['participant_2']}, "
-                f"{info['participant_3']}<br>"
-                f"Chair: {info['chair']}<br>"
-                f"Day {info['day']}, session {info['session']}"
+                f"Participants: {', '.join(str(p) for p in info['participants'])}<br>"
+                f"Session: {info['session']}<br>"
+                f"Day {info['day']}, slot {info['slot']}"
             )
 
     fig = go.Figure(
         go.Heatmap(
             z=z,
-            x=chair_order,
-            y=slot_labels,
+            x=session_order,
+            y=row_labels,
             text=id_labels,
             texttemplate="%{text}",
             textfont=dict(color="#ffffff", size=11, family=FONT_FAMILY),
@@ -136,14 +135,14 @@ def plot_schedule(schedule, presentations, session_times):
             xanchor="left",
         ),
         xaxis=dict(
-            title="Chair (room)",
+            title="Session (room)",
             side="top",
             showgrid=False,
             linecolor=AXIS_COLOR,
             tickfont=dict(color=MUTED_TEXT),
         ),
         yaxis=dict(
-            title="Day · session start time",
+            title="Day · slot",
             autorange="reversed",
             showgrid=False,
             linecolor=AXIS_COLOR,
@@ -153,8 +152,8 @@ def plot_schedule(schedule, presentations, session_times):
         paper_bgcolor=SURFACE_COLOR,
         font=dict(family=FONT_FAMILY, color=PRIMARY_TEXT),
         margin=dict(l=160, r=40, t=100, b=20),
-        height=max(400, 26 * len(slot_labels) + 160),
-        width=max(520, 140 * len(chair_order) + 200),
+        height=max(400, 26 * len(row_labels) + 160),
+        width=max(520, 140 * len(session_order) + 200),
     )
 
     return fig
@@ -167,12 +166,12 @@ ROW_PADDING_POINTS = 8
 
 
 def _cell_text(info):
+    participants_text = ", ".join(str(p) for p in info["participants"])
     return (
         f"ID: {info['id']}\n"
-        f"Participants: {info['participant_1']}, {info['participant_2']}, "
-        f"{info['participant_3']}\n"
-        f"Chair: {info['chair']}\n"
-        f"Day {info['day']}, session {info['session']}"
+        f"Participants: {participants_text}\n"
+        f"Session: {info['session']}\n"
+        f"Day {info['day']}, slot {info['slot']}"
     )
 
 
@@ -185,17 +184,19 @@ def _wrapped_line_count(text, column_width):
     return sum(-(-len(line) // chars_per_line) for line in text.split("\n"))
 
 
-def export_schedule_to_excel(schedule, presentations, session_times, path):
+def export_schedule_to_excel(  # noqa: PLR0917
+    schedule, participants, sessions, n_days, n_slots, path, slot_labels=None
+):
     """Write a solved schedule to an .xlsx file, mirroring plot_schedule's layout.
 
     A spreadsheet has no hover, so every occupied cell's full detail - id,
-    participants, chair, day, and session - is written directly as wrapped
+    participants, session, day, and slot - is written directly as wrapped
     text, not just a compact label. Row heights are sized per row to fit
     whichever of that row's cells wraps to the most lines, so long names
     never get clipped or bleed into the row below.
     """
-    chair_order, slot_labels, cells = _build_grid(
-        schedule, presentations, session_times
+    session_order, row_labels, cells = _build_grid(
+        schedule, participants, sessions, n_days, n_slots, slot_labels
     )
 
     workbook = Workbook()
@@ -208,17 +209,17 @@ def export_schedule_to_excel(schedule, presentations, session_times, path):
     data_font = Font(size=DATA_FONT_SIZE)
     wrap_top = Alignment(wrap_text=True, vertical="top")
 
-    corner = sheet.cell(row=1, column=1, value="Day · session start time")
+    corner = sheet.cell(row=1, column=1, value="Day · slot")
     corner.font = header_font
     corner.fill = header_fill
 
-    for j, chair in enumerate(chair_order, start=2):
-        header_cell = sheet.cell(row=1, column=j, value=chair)
+    for j, session in enumerate(session_order, start=2):
+        header_cell = sheet.cell(row=1, column=j, value=session)
         header_cell.font = header_font
         header_cell.fill = header_fill
         header_cell.alignment = Alignment(horizontal="center", vertical="center")
 
-    for i, label in enumerate(slot_labels, start=2):
+    for i, label in enumerate(row_labels, start=2):
         row_header = sheet.cell(row=i, column=1, value=label)
         row_header.font = Font(bold=True, size=DATA_FONT_SIZE)
         row_header.alignment = Alignment(vertical="top", wrap_text=True)
@@ -238,7 +239,7 @@ def export_schedule_to_excel(schedule, presentations, session_times, path):
         sheet.row_dimensions[i].height = row_height
 
     sheet.column_dimensions[get_column_letter(1)].width = 22
-    for j in range(2, len(chair_order) + 2):
+    for j in range(2, len(session_order) + 2):
         sheet.column_dimensions[get_column_letter(j)].width = DATA_COLUMN_WIDTH
 
     sheet.freeze_panes = "B2"

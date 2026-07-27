@@ -1,11 +1,12 @@
 - [x] abandon student, s1... names and do it p1, p2, moderator/session...
-- [x] expose role_columns somewhere so that custom column names can be assigned to the expected ones.
-- [x] input classes are expecting paths, but dataframes/series should be passed
-- [x] SessionTimes.n_sessions -> `__len__`
+- [x] expose role_columns somewhere so that custom column names can be assigned to the expected ones. (superseded: `columns=` remapping removed entirely in the dict-based refactor below - a caller building a dict already controls its own keys.)
+- [x] input classes are expecting paths, but dataframes/series should be passed (superseded: inputs are now plain dicts, not pandas DataFrames/Series - see below.)
+- [x] SessionTimes.n_sessions -> `__len__` (superseded: `SessionTimes` removed entirely - `Schedule` now takes a plain `n_slots: int`.)
 - [x] In tutorials, I prefer to use `import clashless as cl` instead of `from ... import ...`
-- [x] expose _validate methods to be in a similar submodule: clashless.isvalid.presentations(...)
-- [x] add method to check that there are no clashes in the schedule - this should be a convenience method so that the user can quickly get reassurance that the schedule works - goes to `isvalid`.
+- [x] expose _validate methods to be in a similar submodule: clashless.isvalid.presentations(...) (superseded: `isvalid.report` removed entirely - `Participants` now enforces the relevant invariant at construction.)
+- [x] add method to check that there are no clashes in the schedule - this should be a convenience method so that the user can quickly get reassurance that the schedule works - goes to `isvalid`. (renamed to `isvalid.schedule`.)
 - [x] determine if the algorithm is deterministic or not
+- [x] major refactor: `Presentations`/`SessionTimes` replaced by dict-based `Participants`/`Sessions` (chair folded into participants, session made an explicit label instead of chair-derived); `Unavailability` now dict-based too; `Schedule`/`isvalid`/`plotting` and all tests/tutorials updated to match - see CLAUDE.md for the current model.
 - [ ] populate readme
 - [ ] add docstrings
 - [ ] build sphinx documentation
@@ -16,5 +17,5 @@
 - [ ] extend tests to run docstring tests
 - [ ] Remove numbers from tutorials 
 - [ ] index notebook for all tutorials
-- [ ] document day_session in schedule
+- [ ] document day_slot in schedule
 - [ ] release to PyPI workflow.

@@ -1,36 +1,24 @@
-import pandas as pd
-
-
 class Unavailability:
-    """Wrap an unavailability table and answer is_unavailable queries.
+    """Wrap per-person unavailability rules and answer is_unavailable queries.
 
-    `source` is a `pd.DataFrame` with `person`, nullable `day`, and nullable
-    `session` columns. `columns`, if given, maps your own column names to
-    those three.
+    `source` is a `dict` `{person: [(day, slot), ...]}`. `None` is the
+    wildcard marker for a rule element:
+      - (None, slot)  -> unavailable at that slot, every day
+      - (day, None)   -> unavailable the whole day
+      - (day, slot)   -> unavailable for that specific slot only
+      - (None, None)  -> unavailable for the entire conference
 
-    A row's nullable day/session act as wildcards:
-      - day set, session null   -> unavailable the whole day
-      - day null, session set   -> unavailable that session, every day
-      - both set                -> unavailable for that specific slot only
-      - both null                -> unavailable for the entire conference
+    A person may have any number of rules; all apply.
     """
 
-    def __init__(self, source, columns=None):
-        data = source.copy()
-        if columns:
-            data = data.rename(columns=columns)
+    def __init__(self, source):
+        self.data = {person: list(rules) for person, rules in source.items()}
 
-        self.data = data.astype({"day": "Int64", "session": "Int64"})
-        self._rules_by_person = {
-            person: list(zip(rows["day"], rows["session"]))
-            for person, rows in self.data.groupby("person")
-        }
-
-    def is_unavailable(self, person, day, session):
-        """Return whether `person` is unavailable at (day, session)."""
-        for rule_day, rule_session in self._rules_by_person.get(person, []):
-            day_matches = pd.isna(rule_day) or rule_day == day
-            session_matches = pd.isna(rule_session) or rule_session == session
-            if day_matches and session_matches:
+    def is_unavailable(self, person, day, slot):
+        """Return whether `person` is unavailable at (day, slot)."""
+        for rule_day, rule_slot in self.data.get(person, []):
+            day_matches = rule_day is None or rule_day == day
+            slot_matches = rule_slot is None or rule_slot == slot
+            if day_matches and slot_matches:
                 return True
         return False
